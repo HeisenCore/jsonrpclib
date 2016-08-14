@@ -57,23 +57,11 @@ import random
 # Library includes
 from jsonrpclib import config
 from jsonrpclib import history
+from bson import json_util
 
 # JSON library importing
 cjson = None
 json = None
-try:
-    import cjson
-except ImportError:
-    try:
-        import json
-    except ImportError:
-        try:
-            import simplejson as json
-        except ImportError:
-            raise ImportError(
-                'You must have the cjson, json, or simplejson ' +
-                'module(s) available.'
-            )
 
 IDCHARS = string.ascii_lowercase+string.digits
 
@@ -90,20 +78,11 @@ class UnixSocketMissing(Exception):
 
 
 def jdumps(obj, encoding='utf-8'):
-    # Do 'serialize' test at some point for other classes
-    global cjson
-    if cjson:
-        return cjson.encode(obj)
-    else:
-        return json.dumps(obj, encoding=encoding)
+    return json_util.dumps(obj)
 
 
 def jloads(json_string):
-    global cjson
-    if cjson:
-        return cjson.decode(json_string)
-    else:
-        return json.loads(json_string)
+    return json_util.dumps(json_string)
 
 
 # XMLRPClib re-implementations
