@@ -82,7 +82,7 @@ def jdumps(obj, encoding='utf-8'):
 
 
 def jloads(json_string):
-    return json_util.dumps(json_string)
+    return json_util.loads(json_string)
 
 
 # XMLRPClib re-implementations
