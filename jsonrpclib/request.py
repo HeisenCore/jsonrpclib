@@ -24,7 +24,7 @@ class Connection(object):
         self.servers = {
             key: cycle(value) for key, value in self.original.items()
         }
-        print {key: value for key, value in self.original.items()}
+
         self.black_list = defaultdict(list)
 
     def __getattr__(self, name):
@@ -39,7 +39,7 @@ class Connection(object):
         return self.connect(*server_info)
 
     def get_available_server(self, server_name):
-        print self.servers[server_name]
+
         server_info = self.servers[server_name].next()
 
         while server_info in self.black_list[server_name] or (not self.is_alive(*server_info)):

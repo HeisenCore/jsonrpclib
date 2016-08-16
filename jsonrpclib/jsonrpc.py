@@ -543,7 +543,13 @@ def check_for_errors(result):
     if 'error' in result.keys() and result['error'] is not None:
         code = result['error']['code']
         message = result['error']['message']
-        raise ProtocolError((code, message))
+
+        if '|' in message:
+            ext_type, _, message = message.rpartition('|')
+            raise type(str(ext_type), (Exception,), {})(message)
+        else:
+            raise ProtocolError((code, message))
+
     return result
 
 

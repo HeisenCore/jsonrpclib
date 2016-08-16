@@ -1,3 +1,5 @@
+from bson import ObjectId
+import datetime
 import types
 import inspect
 import re
@@ -26,6 +28,11 @@ value_types = [
     types.NoneType
 ]
 
+other_types = [
+    ObjectId,
+    datetime.datetime
+]
+
 supported_types = iter_types+string_types+numeric_types+value_types
 invalid_module_chars = r'[^a-zA-Z0-9\_\.]'
 
@@ -41,7 +48,7 @@ def dump(obj, serialize_method=None, ignore_attribute=None, ignore=[]):
         ignore_attribute = config.ignore_attribute
     obj_type = type(obj)
     # Parse / return default "types"...
-    if obj_type in numeric_types+string_types+value_types:
+    if obj_type in numeric_types+string_types+value_types + other_types:
         return obj
     if obj_type in iter_types:
         if obj_type in (types.ListType, types.TupleType):
@@ -92,7 +99,7 @@ def dump(obj, serialize_method=None, ignore_attribute=None, ignore=[]):
 
 
 def load(obj):
-    if type(obj) in string_types + numeric_types + value_types:
+    if type(obj) in string_types + numeric_types + value_types + other_types:
         return obj
 
     if isinstance(obj, list):
