@@ -23,7 +23,7 @@ if os.path.exists("README.md"):
         long_description = readme_fp.read()
 
 distutils.core.setup(
-    name="jsonrpclib",
+    name="jsonrpclib-heisen",
     version="0.1.10",
     packages=["jsonrpclib"],
     author="Josh Marshall",
