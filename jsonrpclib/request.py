@@ -30,26 +30,31 @@ class Connection(object):
     def __getattr__(self, name):
         """ needed for transport """
         if name in self.original:
-            return self.get_server(name)
+            return self.get_connection(name)
         else:
-           return super(Connection, self).__getattr__(name)
+            return super(Connection, self).__getattr__(name)
 
-    def get_server(self, server_name):
+    def get_connection(self, server_name):
         server_info = self.get_available_server(server_name)
         return self.connect(*server_info)
 
     def get_available_server(self, server_name):
-
-        server_info = self.servers[server_name].next()
+        server_info = self._get_server(server_name)
 
         while server_info in self.black_list[server_name] or (not self.is_alive(*server_info)):
-            server_info = self.servers[server_name].next()
+            server_info = self._get_server(server_name)
 
             self.black_list[server_name].append(server_info)
             self.original[server_name].remove(server_info)
             self.servers[server_name] = cycle(self.original[server_name])
 
         return server_info
+
+    def _get_server(self, server_name):
+        try:
+            return self.servers[server_name].next()
+        except StopIteration:
+            raise NoServer('All servers are offline')
 
     def is_alive(self, host, port, *args):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -128,3 +133,7 @@ class SpecialTransport(Transport):
         connection.endheaders()
         if request_body:
             connection.send(request_body)
+
+
+class NoServer(Exception):
+    pass
