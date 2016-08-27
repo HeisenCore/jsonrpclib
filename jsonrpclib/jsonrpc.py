@@ -53,10 +53,12 @@ from xmlrpclib import ServerProxy as XMLServerProxy
 from xmlrpclib import _Method as XML_Method
 import string
 import random
+import exceptions
 
 # Library includes
 from jsonrpclib import config
 from jsonrpclib import history
+from jsonrpclib.custom_exceptions import custom_exceptions
 from bson import json_util
 
 # JSON library importing
@@ -545,8 +547,13 @@ def check_for_errors(result):
         message = result['error']['message']
 
         if '|' in message:
-            ext_type, _, message = message.rpartition('|')
-            raise type(str(ext_type), (Exception,), {})(message)
+            ext_type, _, message = message.partition('|')
+            if hasattr(exceptions, ext_type):
+                raise getattr(exceptions, ext_type)(message)
+            elif ext_type in custom_exceptions:
+                raise custom_exceptions[ext_type](message)
+
+            # raise type(str(ext_type), (Exception,), {})(message)
         else:
             raise ProtocolError((code, message))
 
