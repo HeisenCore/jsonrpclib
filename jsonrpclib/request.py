@@ -1,4 +1,4 @@
-import random
+import datetime
 import logging
 import inspect
 import socket
@@ -13,14 +13,20 @@ logger = logging.getLogger(__name__)
 
 
 class Connection(object):
-    def __init__(self, servers_dict=None, transport_method='django', user=None):
+    def __init__(self, servers_dict=None, transport_method='django', user=None, reinitiate_delay=20):
         if servers_dict is None:
             raise ValueError('Server list shouldn\'t be empty')
+
+        self.reinitiate_delay = datetime.timedelta(seconds=reinitiate_delay)
 
         self.original = servers_dict
         self.user = user
         self.transport_method = transport_method
 
+        self._create_server_list()
+
+    def _create_server_list(self):
+        self.initiate_time = datetime.datetime.now()
         self.servers = {
             key: cycle(value) for key, value in self.original.items()
         }
@@ -31,8 +37,6 @@ class Connection(object):
         """ needed for transport """
         if name in self.original:
             return self.get_connection(name)
-        else:
-            return super(Connection, self).__getattr__(name)
 
     def get_connection(self, server_name):
         server_info = self.get_available_server(server_name)
@@ -41,12 +45,8 @@ class Connection(object):
     def get_available_server(self, server_name):
         server_info = self._get_server(server_name)
 
-        while server_info in self.black_list[server_name] or (not self.is_alive(*server_info)):
+        while server_info in self.black_list[server_name] or (not self.is_alive(server_name, server_info)):
             server_info = self._get_server(server_name)
-
-            self.black_list[server_name].append(server_info)
-            self.original[server_name].remove(server_info)
-            self.servers[server_name] = cycle(self.original[server_name])
 
         return server_info
 
@@ -54,13 +54,24 @@ class Connection(object):
         try:
             return self.servers[server_name].next()
         except StopIteration:
+            now = datetime.datetime.now()
+            if self.initiate_time < (now - self.reinitiate_delay):
+                self._create_server_list()
+
             raise NoServer('All servers are offline')
 
-    def is_alive(self, host, port, *args):
+    def is_alive(self, server_name, server_info):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        result = sock.connect_ex((host, port))
+        result = sock.connect_ex((server_info[0], server_info[1]))
 
-        return result == 0
+        alive = result == 0
+
+        if not alive:
+            self.black_list[server_name].append(server_info)
+            self.original[server_name].remove(server_info)
+            self.servers[server_name] = cycle(self.original[server_name])
+
+        return alive
 
     def connect(self, host, port, auth_user=None, auth_password=None):
         address, user = self.get_transport_info(host, port)
