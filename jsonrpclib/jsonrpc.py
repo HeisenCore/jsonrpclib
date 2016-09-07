@@ -547,7 +547,9 @@ def check_for_errors(result):
         message = result['error']['message']
 
         if '|' in message:
-            ext_type, _, args = message.partition('|')
+            args = message.split('|')
+            ext_type = args.pop(0)
+
             if hasattr(exceptions, ext_type):
                 raise getattr(exceptions, ext_type)(*args)
             elif ext_type in custom_exceptions:
