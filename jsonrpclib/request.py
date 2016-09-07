@@ -4,6 +4,7 @@ import inspect
 import socket
 from collections import defaultdict
 from itertools import cycle
+from copy import deepcopy
 
 from jsonrpclib import Server
 from jsonrpclib.jsonrpc import Transport
@@ -19,7 +20,7 @@ class Connection(object):
 
         self.reinitiate_delay = datetime.timedelta(seconds=reinitiate_delay)
 
-        self.original = servers_dict
+        self.original = deepcopy(servers_dict)
         self.user = user
         self.transport_method = transport_method
 
@@ -68,8 +69,11 @@ class Connection(object):
 
         if not alive:
             self.black_list[server_name].append(server_info)
-            self.original[server_name].remove(server_info)
-            self.servers[server_name] = cycle(self.original[server_name])
+            new_server_list = deepcopy(self.original[server_name])
+            for server in self.black_list[server_name]:
+                new_server_list.remove(server_info)
+
+            self.servers[server_name] = cycle(new_server_list)
 
         return alive
 
