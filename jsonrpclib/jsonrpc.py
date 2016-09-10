@@ -551,9 +551,15 @@ def check_for_errors(result):
             ext_type = args.pop(0)
 
             if hasattr(exceptions, ext_type):
-                raise getattr(exceptions, ext_type)(*args)
+                if isinstance(args, str):
+                    raise getattr(exceptions, ext_type)(args)
+                else:
+                    raise getattr(exceptions, ext_type)(*args)
             elif ext_type in custom_exceptions:
-                raise custom_exceptions[ext_type](*args)
+                if isinstance(args, str):
+                    raise custom_exceptions[ext_type](args)
+                else:
+                    raise custom_exceptions[ext_type](*args)
 
             # raise type(str(ext_type), (Exception,), {})(message)
         else:
