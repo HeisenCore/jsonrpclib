@@ -560,8 +560,12 @@ def check_for_errors(result):
                     raise custom_exceptions[ext_type](args)
                 else:
                     raise custom_exceptions[ext_type](*args)
-
-            # raise type(str(ext_type), (Exception,), {})(message)
+            else:
+                ext_type = 'n{}'.format(str(ext_type))
+                if isinstance(args, str):
+                    raise type(ext_type, (Exception,), {})(args)
+                else:
+                    raise type(ext_type, (Exception,), {})(*args)
         else:
             raise ProtocolError((code, message))
 
