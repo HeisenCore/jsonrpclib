@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import distutils.core
+from setuptools import setup
 import os
 
 long_description = "Placeholder in case of missing README.md."
@@ -22,7 +22,7 @@ if os.path.exists("README.md"):
     with open("README.md") as readme_fp:
         long_description = readme_fp.read()
 
-distutils.core.setup(
+setup(
     name="jsonrpclib-heisen",
     version="0.1.14",
     packages=["jsonrpclib"],

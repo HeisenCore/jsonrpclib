@@ -13,7 +13,7 @@ from jsonrpclib.jsonrpc import Transport
 logger = logging.getLogger(__name__)
 
 
-class Connection(object):
+class ConnectionPool(object):
     def __init__(self, servers_dict=None, transport_method='django', user=None, reinitiate_delay=20):
         if servers_dict is None:
             raise ValueError('Server list shouldn\'t be empty')
@@ -28,28 +28,31 @@ class Connection(object):
 
     def _create_server_list(self):
         self.initiate_time = datetime.datetime.now()
-        self.servers = {
-            key: cycle(value) for key, value in self.original.items()
-        }
-
         self.black_list = defaultdict(list)
+        self.servers = {}
+
+        for server_name, connections in self.original.items():
+            servers = []
+            for connection in connections:
+                servers.append(Connection(self.transport_method, self.user, *connection))
+
+            self.servers[server_name] = cycle(servers)
 
     def __getattr__(self, name):
         """ needed for transport """
         if name in self.original:
-            return self.get_connection(name)
-
-    def get_connection(self, server_name):
-        server_info = self.get_available_server(server_name)
-        return self.connect(*server_info)
+            return self.get_available_server(name).connection
+        else:
+            raise InvalidServerName('Specified server name doesn\'t exists')
 
     def get_available_server(self, server_name):
-        server_info = self._get_server(server_name)
+        connection = self._get_server(server_name)
 
-        while server_info in self.black_list[server_name] or (not self.is_alive(server_name, server_info)):
-            server_info = self._get_server(server_name)
+        is_alive = self.is_alive(server_name, connection)
+        while connection in self.black_list[server_name] or (not is_alive):
+            connection = self._get_server(server_name)
 
-        return server_info
+        return connection
 
     def _get_server(self, server_name):
         try:
@@ -61,35 +64,57 @@ class Connection(object):
 
             raise NoServer('All servers are offline')
 
-    def is_alive(self, server_name, server_info):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        result = sock.connect_ex((server_info[0], server_info[1]))
-
-        alive = result == 0
+    def is_alive(self, server_name, connection):
+        alive = self.servers[server_name].is_alive
 
         if not alive:
-            self.black_list[server_name].append(server_info)
+            self.black_list[server_name].append(connection)
             new_server_list = deepcopy(self.original[server_name])
             for server in self.black_list[server_name]:
-                new_server_list.remove(server_info)
+                new_server_list.remove(connection)
 
             self.servers[server_name] = cycle(new_server_list)
 
         return alive
 
-    def connect(self, host, port, auth_user=None, auth_password=None):
-        address, user = self.get_transport_info(host, port)
+    def add_server(self, name, connection_info):
+        if name in self.original:
+            self.original[name].append(connection_info)
+        else:
+            self.original[name] = [connection_info]
+
+        self._create_server_list()
+
+
+class Connection(object):
+    def __init__(self, transport_method, user, host, port, auth_user=None, auth_password=None):
+        self.transport_method = transport_method
+        self.user = user
+        self.host = host
+        self.port = port
+        self.auth_user = auth_user
+        self.auth_password = auth_password
+
+        self.connect()
+
+    @property
+    def is_alive(self):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        result = sock.connect_ex((self.host, self.port))
+
+        return result == 0
+
+    def connect(self):
+        address, user = self.get_transport_info(self.host, self.port)
 
         auth = ''
-        if auth_user and auth_password:
-            auth = '{0}:{1}@'.format(auth_user, auth_password)
+        if self.auth_user and self.auth_password:
+            auth = '{0}:{1}@'.format(self.auth_user, self.auth_password)
 
-        server = Server(
-            'http://{}{}:{}'.format(auth, host, port),
+        self.connection = Server(
+            'http://{}{}:{}'.format(auth, self.host, self.port),
             transport=SpecialTransport(user=user, address=address)
         )
-
-        return server
 
     def get_transport_info(self, host, port):
         if self.transport_method == 'django':
@@ -151,4 +176,8 @@ class SpecialTransport(Transport):
 
 
 class NoServer(Exception):
+    pass
+
+
+class InvalidServerName(Exception):
     pass
