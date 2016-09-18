@@ -550,6 +550,12 @@ def check_for_errors(result):
             args = message.split('|')
             ext_type = args.pop(0)
 
+            if ext_type == 'UnicodeEncodeError':  # freaking UnicodeEncodeError
+                args[0] = args[0].encode('utf-8')
+                args[2] = int(args[2])
+                args[3] = int(args[3])
+                args[4] = args[4].encode('utf-8')
+
             if hasattr(exceptions, ext_type):
                 if isinstance(args, str):
                     raise getattr(exceptions, ext_type)(args)

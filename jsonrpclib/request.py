@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class ConnectionPool(object):
-    def __init__(self, servers_dict=None, transport_method='django', user=None, reinitiate_delay=20):
+    def __init__(self, servers_dict=None, transport_method='django', user=None, reinitiate_delay=5):
         if servers_dict is None:
             raise ValueError('Server list shouldn\'t be empty')
 
@@ -65,7 +65,7 @@ class ConnectionPool(object):
             raise NoServer('All servers are offline')
 
     def is_alive(self, server_name, connection):
-        alive = self.servers[server_name].is_alive
+        alive = connection.is_alive
 
         if not alive:
             self.black_list[server_name].append(connection)
