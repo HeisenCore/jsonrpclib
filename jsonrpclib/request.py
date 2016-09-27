@@ -95,8 +95,6 @@ class Connection(object):
         self.auth_user = auth_user
         self.auth_password = auth_password
 
-        self.connect()
-
     @property
     def is_alive(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -104,14 +102,15 @@ class Connection(object):
 
         return result == 0
 
-    def connect(self):
+    @property
+    def connection(self):
         address, user = self.get_transport_info(self.host, self.port)
 
         auth = ''
         if self.auth_user and self.auth_password:
             auth = '{0}:{1}@'.format(self.auth_user, self.auth_password)
 
-        self.connection = Server(
+        return Server(
             'http://{}{}:{}'.format(auth, self.host, self.port),
             transport=SpecialTransport(user=user, address=address)
         )
