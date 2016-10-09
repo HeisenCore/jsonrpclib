@@ -45,6 +45,9 @@ class ConnectionPool(object):
         else:
             raise InvalidServerName('Specified server name doesn\'t exists')
 
+    def __dir__(self):
+        return self.original.keys()
+
     def get_available_server(self, server_name):
         connection = self._get_server(server_name)
 
