@@ -45,6 +45,9 @@ class ConnectionPool(object):
         else:
             raise InvalidServerName('Specified server name doesn\'t exists')
 
+    def __dir__(self):
+        return self.original.keys()
+
     def get_available_server(self, server_name):
         connection = self._get_server(server_name)
 
@@ -74,7 +77,11 @@ class ConnectionPool(object):
             for server in self.black_list[server_name]:
                 new_server_list.remove(connection.connection_info)
 
-            self.servers[server_name] = cycle(new_server_list)
+            servers = []
+            for connection in new_server_list:
+                servers.append(Connection(self.transport_method, self.user, *connection))
+
+            self.servers[server_name] = cycle(servers)
 
         return alive
 
@@ -90,11 +97,11 @@ class ConnectionPool(object):
 class Connection(object):
     def __init__(self, transport_method, user, host, port, auth_user=None, auth_password=None):
         self.transport_method = transport_method
+        self.auth_password = auth_password
+        self.auth_user = auth_user
         self.user = user
         self.host = host
         self.port = port
-        self.auth_user = auth_user
-        self.auth_password = auth_password
 
     @property
     def connection_info(self):
