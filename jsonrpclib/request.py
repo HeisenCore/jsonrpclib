@@ -74,8 +74,7 @@ class ConnectionPool(object):
         if not alive:
             self.black_list[server_name].append(connection)
             new_server_list = deepcopy(self.original[server_name])
-            for server in self.black_list[server_name]:
-                new_server_list.remove(connection.connection_info)
+            new_server_list.remove(connection.connection_info)
 
             servers = []
             for connection in new_server_list:
